@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Offer
+    url: https://github.com/mustafaautomation/mcp-rest-api-server/blob/main/docs/OFFER.md
+    about: Hiring Mustafa to wrap your API

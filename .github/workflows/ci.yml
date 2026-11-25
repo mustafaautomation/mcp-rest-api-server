@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # The 26.04 image defaults to Node 24. Keep the suite on the version this package tests.
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: node dist/cli.js --version
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # ubuntu-latest is 26.04, where Docker 29 turns on the containerd snapshotter.
+      # That stores every layer twice and a multi-stage Node image can fail with
+      # "no space left on device". Pin the classic graph driver before building.
+      - name: Use the classic Docker storage driver
+        run: |
+          echo '{"features":{"containerd-snapshotter":false}}' | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
+          docker version
+      - name: Build image
+        run: docker build -t mcp-rest-api-server:ci .
+      - name: Serve the read-only sandbox
+        run: |
+          docker run -d --name mcp -p 8787:8787 mcp-rest-api-server:ci
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8787/health; then
+              echo
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs mcp
+          exit 1

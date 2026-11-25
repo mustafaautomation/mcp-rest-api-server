@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "harborline": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-rest-api-server"],
+      "env": {
+        "API_BASE_URL": "https://api.example.com",
+        "API_KEY": "YOUR_API_KEY",
+        "API_AUTH_STYLE": "bearer",
+        "MCP_READ_ONLY": "true"
+      }
+    }
+  }
+}

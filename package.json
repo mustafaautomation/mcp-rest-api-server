@@ -1,0 +1,79 @@
+{
+  "name": "mcp-rest-api-server",
+  "version": "1.0.0",
+  "description": "Wrap any REST API as a Model Context Protocol server. Stdio and Streamable HTTP, with auth, cursor pagination, retries, and a read-only mode. Ships with the Harborline sandbox API so it runs with zero external accounts.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Mustafa (https://github.com/mustafaautomation)",
+  "homepage": "https://mcp-api.quvantic.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mustafaautomation/mcp-rest-api-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mustafaautomation/mcp-rest-api-server/issues"
+  },
+  "keywords": [
+    "mcp",
+    "modelcontextprotocol",
+    "mcp-server",
+    "rest",
+    "api",
+    "claude",
+    "cursor",
+    "streamable-http"
+  ],
+  "bin": {
+    "mcp-rest-api-server": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "docs/configs",
+    "docs/ADAPT.md",
+    ".env.example",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js",
+    "mock": "tsx src/cli.ts mock",
+    "demo": "tsx scripts/demo-client.ts",
+    "vercel-build": "npm run build && node scripts/prepare-vercel.mjs",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.9",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "hono": "^4.11.4",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^22.19.1",
+    "eslint": "^9.39.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.1",
+    "vitest": "^3.2.4"
+  }
+}

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MCP REST API Server — wrap any REST API for Claude and Cursor</title>
+  <meta name="description" content="A publish-ready TypeScript MCP server by Mustafa. Stdio and Streamable HTTP, auth, cursor pagination, retries, and a sandbox API that needs no accounts.">
+  <link rel="canonical" href="https://mcp-api.quvantic.com">
+  <meta property="og:title" content="MCP REST API Server">
+  <meta property="og:description" content="Wrap any REST API as an MCP server. Portfolio demo by Mustafa. Read-only sandbox, stdio and Streamable HTTP.">
+  <meta property="og:url" content="https://mcp-api.quvantic.com">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://mcp-api.quvantic.com/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MCP REST API Server">
+  <meta name="twitter:description" content="Wrap any REST API as an MCP server. Portfolio demo by Mustafa.">
+  <meta name="twitter:image" content="https://mcp-api.quvantic.com/og.png">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#content">Skip to content</a>
+  <header class="wrap nav">
+    <a class="brand" href="#content">
+      <img src="favicon.svg" alt="">
+      MCP REST
+    </a>
+    <nav class="nav-links" aria-label="Page">
+      <a href="#server">The server</a>
+      <a href="#install">Install</a>
+      <a href="#packages">Packages</a>
+      <a href="https://github.com/mustafaautomation">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="content">
+    <div class="wrap hero">
+      <div>
+        <p class="kicker">Portfolio demo · Mustafa</p>
+        <h1>Wrap any REST API as an MCP server.</h1>
+        <p class="lede">A TypeScript server Claude Desktop, Claude Code, and Cursor can launch. Auth, cursor pagination, retries, and a read-only switch. The Harborline sandbox runs with no external accounts.</p>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/mustafaautomation/mcp-rest-api-server">View on GitHub</a>
+          <a class="button ghost" href="https://github.com/mustafaautomation/mcp-rest-api-server/blob/main/docs/OFFER.md">Hire this</a>
+        </div>
+        <p class="note">Portfolio demo, not client work. Harborline is fictional sample data.</p>
+      </div>
+      <div class="terminal" aria-label="Sample tool session">
+        <header><span class="dot"></span><span class="dot"></span><span class="dot"></span> mcp-rest-api-server</header>
+        <pre><span class="t-accent">list_projects</span> <span class="t-dim">{ limit: 2 }</span>
+  prj_mobile      Harborline mobile launch      active
+  prj_northline   Northline website redesign    active
+  <span class="t-dim">nextCursor eyJvIjoyfQ</span>
+
+<span class="t-accent">get_project</span> <span class="t-dim">prj_northline</span>
+  Northline Goods · active · due 2026-12-12
+
+<span class="t-accent">resources/read</span> <span class="t-dim">harborline://projects/prj_northline</span>
+  4 tasks · 1 blocked
+
+<span class="t-good">read-only · stdio · no account required</span></pre>
+      </div>
+    </div>
+
+    <div class="wrap demo-figure">
+      <figure>
+        <img src="demo.gif" alt="Terminal demo: the MCP client lists Harborline projects, reads a project resource, and loads a status prompt.">
+        <figcaption>Sixty seconds from clone to a live tool call. Read-only sandbox, no account.</figcaption>
+      </figure>
+    </div>
+
+    <div class="wrap stats">
+      <div class="stat"><strong>7</strong><span>read tools, always on</span></div>
+      <div class="stat"><strong>3</strong><span>write tools, behind a flag</span></div>
+      <div class="stat"><strong>2</strong><span>transports: stdio and HTTP</span></div>
+      <div class="stat"><strong>0</strong><span>external accounts to try it</span></div>
+    </div>
+
+    <section id="server">
+      <div class="wrap">
+        <h2>The boring parts, already done.</h2>
+        <p class="section-lead">The interesting work is mapping your API. The server around it — validation, paging, auth, and the client config — should not be a weekend of glue.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Read-only until you say otherwise</h3>
+            <p>Write tools are not registered while <code>MCP_READ_ONLY</code> is true. The HTTP client also refuses POST and PATCH, so a new tool cannot slip past the flag.</p>
+          </article>
+          <article class="card">
+            <h3>Cursors, not page numbers</h3>
+            <p>Tools take <code>limit</code> and <code>cursor</code> and return <code>nextCursor</code>. If your API uses page numbers, the adapter lives in the client, not in the prompt.</p>
+          </article>
+          <article class="card">
+            <h3>Keys stay out of the log</h3>
+            <p>Bearer or <code>x-api-key</code>, from the environment. Tool errors and stderr are scrubbed. A reflected key comes back as <code>[redacted]</code>.</p>
+          </article>
+          <article class="card">
+            <h3>Retries that respect writes</h3>
+            <p>Reads back off on 429 and 5xx and honor <code>Retry-After</code>. Writes retry a rate limit. They do not retry a 500.</p>
+          </article>
+          <article class="card">
+            <h3>Resources and prompts</h3>
+            <p>A project snapshot, a contract resource, and two prompts that load live tasks before they ask the model to write.</p>
+          </article>
+          <article class="card">
+            <h3>Tests against a real socket</h3>
+            <p>Vitest boots the sandbox and drives the server with the official MCP client, over an in-memory pair, Streamable HTTP, and stdio.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2>Where a call goes.</h2>
+        <p class="section-lead">One process. The model never sees the API key. Harborline stands in until you set <code>API_BASE_URL</code>.</p>
+        <div class="flow">
+          <article>
+            <h3>Clients</h3>
+            <ul>
+              <li>Claude Desktop</li>
+              <li>Claude Code</li>
+              <li>Cursor</li>
+            </ul>
+          </article>
+          <div class="arrow" aria-hidden="true">→</div>
+          <article>
+            <h3>mcp-rest-api-server</h3>
+            <ul>
+              <li>stdio or Streamable HTTP</li>
+              <li>Zod, then the read-only gate</li>
+              <li>Rate limit and retry</li>
+            </ul>
+          </article>
+          <div class="arrow" aria-hidden="true">→</div>
+          <article>
+            <h3>Your API</h3>
+            <ul>
+              <li>Harborline sandbox, or</li>
+              <li>any JSON API with a key</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="live">
+      <div class="wrap">
+        <h2>A live endpoint, still read-only.</h2>
+        <p class="section-lead">After deploy, clients connect to <a href="https://mcp-api.quvantic.com/mcp">https://mcp-api.quvantic.com/mcp</a>. One POST, JSON in and JSON out, Harborline data only. The function stays inside the Hobby time limit. It will not call your API and it will not write.</p>
+      </div>
+    </section>
+
+    <section id="install">
+      <div class="wrap">
+        <h2>Paste a config.</h2>
+        <p class="section-lead">Stdio is the path all three clients launch. Swap the base URL and use a read-only key. Local checkouts can point <code>command</code> at <code>node dist/cli.js</code> before the package is on npm.</p>
+        <div class="tabs">
+          <input type="radio" name="client" id="tab-claude" checked>
+          <input type="radio" name="client" id="tab-code">
+          <input type="radio" name="client" id="tab-cursor">
+          <input type="radio" name="client" id="tab-http">
+          <div class="tablist" role="tablist">
+            <label for="tab-claude">Claude Desktop</label>
+            <label for="tab-code">Claude Code</label>
+            <label for="tab-cursor">Cursor</label>
+            <label for="tab-http">Streamable HTTP</label>
+          </div>
+          <pre class="code panel claude">{
+  "mcpServers": {
+    "harborline": {
+      "command": "npx",
+      "args": ["-y", "mcp-rest-api-server"],
+      "env": {
+        "API_BASE_URL": "https://api.example.com",
+        "API_KEY": "YOUR_API_KEY",
+        "MCP_READ_ONLY": "true"
+      }
+    }
+  }
+}</pre>
+          <pre class="code panel code">claude mcp add harborline \
+  -e API_BASE_URL=https://api.example.com \
+  -e API_KEY=YOUR_API_KEY \
+  -e MCP_READ_ONLY=true \
+  -- npx -y mcp-rest-api-server</pre>
+          <pre class="code panel cursor">{
+  "mcpServers": {
+    "harborline": {
+      "command": "npx",
+      "args": ["-y", "mcp-rest-api-server"],
+      "env": {
+        "API_BASE_URL": "https://api.example.com",
+        "API_KEY": "YOUR_API_KEY",
+        "MCP_READ_ONLY": "true"
+      }
+    }
+  }
+}</pre>
+          <pre class="code panel http">{
+  "mcpServers": {
+    "harborline": {
+      "type": "http",
+      "url": "http://127.0.0.1:8787/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_MCP_HTTP_TOKEN"
+      }
+    }
+  }
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="packages">
+      <div class="wrap">
+        <h2>I will build a custom MCP server for your API.</h2>
+        <p class="section-lead">Fixed price, scoped like the template. Similar read-only jobs have been posting around $20–48/hr. You get the source, not a closed binary. Full write-up in the repo’s offer note.</p>
+        <div class="packages">
+          <article class="package">
+            <span class="days">Basic · 3 days</span>
+            <p class="price">$180</p>
+            <h3>Read-only, one API</h3>
+            <ul>
+              <li>Up to 5 read tools</li>
+              <li>Bearer or API-key auth</li>
+              <li>stdio and one client config</li>
+              <li>A short sandbox recording</li>
+            </ul>
+          </article>
+          <article class="package featured">
+            <span class="days">Standard · 5 days</span>
+            <p class="price">$420</p>
+            <h3>The template, on your API</h3>
+            <ul>
+              <li>Up to 12 read tools</li>
+              <li>Cursor pagination and retries</li>
+              <li>Tests through the MCP client</li>
+              <li>Claude, Claude Code, and Cursor configs</li>
+            </ul>
+          </article>
+          <article class="package">
+            <span class="days">Premium · 7 days</span>
+            <p class="price">$780</p>
+            <h3>Ready to share with a team</h3>
+            <ul>
+              <li>Writes behind the read-only flag</li>
+              <li>Resources, a prompt, and Docker</li>
+              <li>Streamable HTTP with a token</li>
+              <li>CI: lint, typecheck, test, build</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2>Swap Harborline for your API.</h2>
+        <p class="section-lead">Four edits. The guide in the repo names the files.</p>
+        <div class="steps">
+          <article class="step">
+            <strong>01</strong>
+            <h3>Set the base URL</h3>
+            <p><code>API_BASE_URL</code> and a read-only <code>API_KEY</code>. The sandbox steps aside.</p>
+          </article>
+          <article class="step">
+            <strong>02</strong>
+            <h3>Describe the JSON</h3>
+            <p>Replace the Zod schemas. The client rejects a payload that does not match.</p>
+          </article>
+          <article class="step">
+            <strong>03</strong>
+            <h3>Map the endpoints</h3>
+            <p>One method per call. Tools never call <code>fetch</code> themselves.</p>
+          </article>
+          <article class="step">
+            <strong>04</strong>
+            <h3>Keep writes off</h3>
+            <p>Register them under the read-only check, then run the test suite.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <p>Portfolio demo, not client work. Mustafa · <a href="https://github.com/mustafaautomation">github.com/mustafaautomation</a></p>
+      <p>Template for <a href="https://mcp-api.quvantic.com">mcp-api.quvantic.com</a></p>
+    </div>
+  </footer>
+</body>
+</html>
