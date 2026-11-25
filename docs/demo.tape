@@ -1,6 +1,6 @@
 Output docs/demo.gif
 Set Shell "bash"
-Set FontFamily "JetBrains Mono"
+Set FontFamily "JetBrains Mono, Menlo, monospace"
 Set FontSize 15
 Set Width 1080
 Set Height 720
@@ -11,8 +11,8 @@ Set Framerate 10
 
 Type "node dist/cli.js --help"
 Enter
-Sleep 2.4s
+Sleep 3.5s
 
 Type "clear && npm run demo"
 Enter
-Sleep 7s
+Sleep 12s
